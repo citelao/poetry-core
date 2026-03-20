@@ -56,7 +56,7 @@ class DependencyGroup:
                     *(d for d in self._poetry_dependencies if d.is_optional()),
                 ]
 
-        return group_dependencies + included_group_dependencies
+        return _dedupe_dependencies(group_dependencies + included_group_dependencies)
 
     @property
     def dependencies_for_locking(self) -> list[Dependency]:
@@ -98,7 +98,7 @@ class DependencyGroup:
                 else:
                     dependencies.append(dep)
 
-        return dependencies + included_group_dependencies
+        return _dedupe_dependencies(dependencies + included_group_dependencies)
 
     def _resolve_included_dependency_groups(self, dependencies_for_locking: bool = False) -> list[Dependency]:
         """Resolves and returns the dependencies from included dependency groups.
@@ -171,6 +171,15 @@ class DependencyGroup:
             f" mixed_dynamic={self._mixed_dynamic})"
         )
 
+
+def _dedupe_dependencies(dependencies: list[Dependency]) -> list[Dependency]:
+    seen = set()
+    deduped = []
+    for dep in dependencies:
+        if dep.name not in seen:
+            seen.add(dep.name)
+            deduped.append(dep)
+    return deduped
 
 def _enrich_dependency(
     project_dependency: Dependency, poetry_dependency: Dependency, marker: BaseMarker
